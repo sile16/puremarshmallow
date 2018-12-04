@@ -43,7 +43,9 @@ class Worker(threading.Thread):
             o = theClass().load(theData, many)
 
             message = ("===============================\n")
-            message += "Testing Class: {}  : ".format(theClass.__name__)
+            message += "Testing Class: {}, many={} : ".format(
+                                                        theClass.__name__,
+                                                        many)
             message += "{}(".format(item['arrayFunc'])
             delim = ""
             for k, v in item['kwargs'].items():

@@ -1,64 +1,145 @@
-from purestorage_schema import *
+import purestorage_schema as p
 import purestorage
-from pprint import pprint
-
-import urllib3, json
+import json
+import pprint
+import threading
+import queue
+import urllib3
 urllib3.disable_warnings()
 
 
+class Worker(threading.Thread):
+    def __init__(self, q, ip, config, printLock):
+        threading.Thread.__init__(self)
+        self.printLock = printLock
+        self.ip = ip
+        self.config = config
+        self.q = q
 
-array = purestorage.FlashArray("10.225.112.180",api_token="ba6a44b5-8589-319b-d1a2-5302c1ec962b")
+    def safe_print(self, *args):
+        '''Thread safe printing'''
+        with self.printLock:
+            print(*args)
+
+    def run(self):
+        # Create FA object and start session
+        self.safe_print("Starting worker")
+        self.array = purestorage.FlashArray(self.ip, **self.config)
+
+        while True:
+            item = self.q.get()
+            theClass = item['theClass']
+            # FA Object "function name" was passed by string, get actual func
+            arrayFunc = getattr(self.array, item['arrayFunc'])
+
+            # actually make the API call here
+            theData = arrayFunc(**item['kwargs'])
+
+            many = False
+            if isinstance(theData, (list,)):
+                    many = True
+
+            # marshall data here
+            o = theClass().load(theData, many)
+
+            message = ("===============================\n")
+            message += "Testing Class: {}  : ".format(theClass.__name__)
+            message += "{}(".format(item['arrayFunc'])
+            delim = ""
+            for k, v in item['kwargs'].items():
+                message += "{}{}={}".format(delim, k, v)
+                delim = ", "
+            message += ") : "
+
+            if o.errors:
+                message += "Error !! {}\n"
+                lastError = ""
+                for key in o.errors.keys():
+                    currError = str(o.errors[key])
+                    if currError == lastError:
+                        pass
+                    lastError = currError
+
+                    message += currError
+                    message += "-------------------\n"
+                    if many:
+                        message += pprint.pformat(theData[key])
+                    else:
+                        message += pprint.pformat(theData)
+                    
+                    message += "-------------------\n"
+            else:
+                message += "Success!\n"
+
+            self.safe_print(message)
+            self.q.task_done()
 
 
-def check(theClass,theData,many=False):
-    o = theClass().load(theData,many)
+def main():
+    # Read in ip & api_token / username/password
+    try:
+        with open("config.json", "r") as f:
+            config = json.load(f)
+            ip = config['ip']
+            del config['ip']
+    except Exception as e:
+        print(e)
+        print("Please put the ip & (api_token || username & password)")
+        print("in the file config.json")
+        exit(1)
 
-    if o.errors:
-        print("--------------------------------")
-        print("error in Type: {}".format(theClass.__name__))
-        if isinstance(theData, (list,)):
-            pprint(theData[0])
-        else:
-            pprint(theData)
-        
-        pprint(o.errors)
+    q = queue.Queue()
+
+    # Start threads to do the work.
+    printLock = threading.Lock()
+    for _ in range(4):
+        t = Worker(q, ip, config, printLock)
+        t.setDaemon(True)
+        t.start()
+
+    def check(theClass, arrayFunc, **kwargs):
+        q.put({"theClass": theClass,
+               "arrayFunc": arrayFunc,
+               "kwargs": kwargs})
+
+    check(p.PureFA, "get")
+    check(p.PureFAControllers, "get", controllers=True)
+    check(p.PureFASpace, "get", space=True)
+
+    check(p.PureFAPhoneHome, "get", phonehome=True)
+    check(p.PureFARemoteAssist, " get_remote_assist_status")
+    check(p.PureFAConnection, "list_array_connections")
+    check(p.PureFANTP, "get", ntpserver=True)
+    check(p.PureFAProxy, "get", proxy=True)
+    check(p.PureFARelayHost, "get", relayhost=True)
+    check(p.PureFASCSITimeout, "get", scsi_timeout=True)
+
+    check(p.PureFAVolume, "list_volumes", pending=True)
+    check(p.PureFAVolumeSpace, "list_volumes", space=True)
+    check(p.PureFAVolumeQos, "list_volumes", qos=True, pending=True)
+
+    check(p.PureFASnap, "list_volumes", snap=True, pending=True)
+    check(p.PureFASnapSpace, "list_volumes", snap=True,
+          pending=True, space=True)
+
+    check(p.PureFAHostAll, "list_hosts", all=True)
+    check(p.PureFAHost, "list_hosts")
+    # check(PureFAHostConnection,"conn)
+
+    check(p.PureFAHostGroup, "list_hgroups")
+    # check(PureFAHostGroupConnection,"list_hgroup_connections")
+
+    check(p.PureFAAlertEmails, "list_alert_recipients")
+
+    check(p.PureFAMessage, "list_messages")
+    check(p.PureFASMTP, "get_smtp")
+    check(p.PureFADrive, "list_drives")
+    check(p.PureFAHardware, "list_hardware")
+    check(p.PureFANetwork, "list_network_interfaces")
+
+    # wait till all threads finish
+    q.join()
 
 
-#PureFA,array.get(),many=True)
-#PureFAControllers,array.get(controllers=True),many=True)
-check(PureFASpace,array.get(space=True),many=True)
-#PureFAPhoneHome,array.get(phonehome=True))
-#PureFARemoteAssist,array.get_remote_assist_status())
-check(PureFAConnection,array.list_array_connections(),many=True)
-check(PureFANTP,array.get(ntpserver=True))
-check(PureFAProxy,array.get(proxy=True))
-check(PureFARelayHost,array.get(relayhost=True))
-check(PureFASCSITimeout,array.get(scsi_timeout=True))
-
-check(PureFAVolume,array.list_volumes(pending=True),many=True)
-check(PureFAVolumeSpace,array.list_volumes(space=True),many=True)
-check(PureFAVolumeQos,array.list_volumes(qos=True,pending=True),many=True)
-
-
-check(PureFASnap,array.list_volumes(snap=True,pending=True),many=True)
-check(PureFASnapSpace,array.list_volumes(snap=True,pending=True,space=True),many=True)
-
-check(PureFAHostAll,array.list_hosts(all=True))
-check(PureFAHost,array.list_hosts(),many=True)
-#check(PureFAHostConnection,array.conn)
-
-check(PureFAHostGroup,array.list_hgroups(),many=True)
-#check(PureFAHostGroupConnection,array.list_hgroup_connections()))
-
-
-check(PureFAAlertEmails,array.list_alert_recipients(),many=True)
-
-
-
-check(PureFAMessage,array.list_messages(),many=True)
-check(PureFASMTP,array.get_smtp(),many=True)
-check(PureFADrive,array.list_drives(),many=True)
-check(PureFAHardware,array.list_hardware(),many=True)
-check(PureFANetwork,array.list_network_interfaces(),many=True)
-
-
+if __name__ == "__main__":
+    main()

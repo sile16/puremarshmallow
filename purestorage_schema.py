@@ -191,10 +191,10 @@ class PureFAMessage(Schema):
 
 
 class PureFASMTP(Schema):
-    userName = fields.Str(load_from="user_name",allow_none=True)
+    userName = fields.Str(load_from="user_name", allow_none=True)
     password = fields.Str(allow_none=True)
-    relayhost = fields.Str(load_from="relay_host",allow_none=True)
-    senderDomain = fields.Str(load_from="sender_domain",allow_none=True)
+    relayhost = fields.Str(load_from="relay_host", allow_none=True)
+    senderDomain = fields.Str(load_from="sender_domain", allow_none=True)
 
 
 class PureFADrive(Schema):

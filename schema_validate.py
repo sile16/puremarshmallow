@@ -54,20 +54,22 @@ class Worker(threading.Thread):
             if o.errors:
                 message += "Error !! {}\n"
                 lastError = ""
-                for key in o.errors.keys():
-                    currError = str(o.errors[key])
-                    if currError == lastError:
-                        pass
-                    lastError = currError
+                if many:
+                    for key in o.errors.keys():
+                        currError = str(o.errors[key])
+                        if currError == lastError:
+                            pass
+                        lastError = currError
 
-                    message += currError
-                    message += "-------------------\n"
-                    if many:
+                        message += currError
+                        message += "-------------------\n"
                         message += pprint.pformat(theData[key])
+                        message += "-------------------\n"
                     else:
+                        message += str(o.errors)
+                        message += "-------------------\n"
                         message += pprint.pformat(theData)
-                    
-                    message += "-------------------\n"
+
             else:
                 message += "Success!\n"
 
@@ -92,7 +94,7 @@ def main():
 
     # Start threads to do the work.
     printLock = threading.Lock()
-    for _ in range(4):
+    for _ in range(8):
         t = Worker(q, ip, config, printLock)
         t.setDaemon(True)
         t.start()
@@ -107,7 +109,7 @@ def main():
     check(p.PureFASpace, "get", space=True)
 
     check(p.PureFAPhoneHome, "get", phonehome=True)
-    check(p.PureFARemoteAssist, " get_remote_assist_status")
+    check(p.PureFARemoteAssist, "get_remote_assist_status")
     check(p.PureFAConnection, "list_array_connections")
     check(p.PureFANTP, "get", ntpserver=True)
     check(p.PureFAProxy, "get", proxy=True)

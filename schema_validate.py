@@ -5,6 +5,7 @@ import pprint
 import threading
 import queue
 import urllib3
+from datetime import datetime
 urllib3.disable_warnings()
 
 
@@ -96,53 +97,63 @@ def main():
 
     # Start threads to do the work.
     printLock = threading.Lock()
+    startTime = datetime.now()
     for _ in range(8):
         t = Worker(q, ip, config, printLock)
         t.setDaemon(True)
         t.start()
 
+    count = 0
+
     def check(theClass, arrayFunc, **kwargs):
+        nonlocal count
+        count += 1
         q.put({"theClass": theClass,
                "arrayFunc": arrayFunc,
                "kwargs": kwargs})
 
-    check(p.PureFA, "get")
-    check(p.PureFAControllers, "get", controllers=True)
-    check(p.PureFASpace, "get", space=True)
+    for x in range(1):
+        check(p.PureFA, "get")
+        check(p.PureFAControllers, "get", controllers=True)
+        check(p.PureFASpace, "get", space=True)
 
-    check(p.PureFAPhoneHome, "get", phonehome=True)
-    check(p.PureFARemoteAssist, "get_remote_assist_status")
-    check(p.PureFAConnection, "list_array_connections")
-    check(p.PureFANTP, "get", ntpserver=True)
-    check(p.PureFAProxy, "get", proxy=True)
-    check(p.PureFARelayHost, "get", relayhost=True)
-    check(p.PureFASCSITimeout, "get", scsi_timeout=True)
+        check(p.PureFAPhoneHome, "get", phonehome=True)
+        check(p.PureFARemoteAssist, "get_remote_assist_status")
+        check(p.PureFAConnection, "list_array_connections")
+        check(p.PureFANTP, "get", ntpserver=True)
+        check(p.PureFAProxy, "get", proxy=True)
+        check(p.PureFARelayHost, "get", relayhost=True)
+        check(p.PureFASCSITimeout, "get", scsi_timeout=True)
 
-    check(p.PureFAVolume, "list_volumes", pending=True)
-    check(p.PureFAVolumeSpace, "list_volumes", space=True)
-    check(p.PureFAVolumeQos, "list_volumes", qos=True, pending=True)
+        check(p.PureFAVolume, "list_volumes", pending=True)
+        check(p.PureFAVolumeSpace, "list_volumes", space=True)
+        check(p.PureFAVolumeQos, "list_volumes", qos=True, pending=True)
 
-    check(p.PureFASnap, "list_volumes", snap=True, pending=True)
-    check(p.PureFASnapSpace, "list_volumes", snap=True,
-          pending=True, space=True)
+        check(p.PureFASnap, "list_volumes", snap=True, pending=True)
+        check(p.PureFASnapSpace, "list_volumes", snap=True,
+              pending=True, space=True)
 
-    check(p.PureFAHostAll, "list_hosts", all=True)
-    check(p.PureFAHost, "list_hosts")
-    # check(PureFAHostConnection,"conn)
+        check(p.PureFAHostAll, "list_hosts", all=True)
+        check(p.PureFAHost, "list_hosts")
+        # check(PureFAHostConnection,"conn)
 
-    check(p.PureFAHostGroup, "list_hgroups")
-    # check(PureFAHostGroupConnection,"list_hgroup_connections")
+        check(p.PureFAHostGroup, "list_hgroups")
+        # check(PureFAHostGroupConnection,"list_hgroup_connections")
 
-    check(p.PureFAAlertEmails, "list_alert_recipients")
+        check(p.PureFAAlertEmails, "list_alert_recipients")
 
-    check(p.PureFAMessage, "list_messages")
-    check(p.PureFASMTP, "get_smtp")
-    check(p.PureFADrive, "list_drives")
-    check(p.PureFAHardware, "list_hardware")
-    check(p.PureFANetwork, "list_network_interfaces")
+        check(p.PureFAMessage, "list_messages")
+        check(p.PureFASMTP, "get_smtp")
+        check(p.PureFADrive, "list_drives")
+        check(p.PureFAHardware, "list_hardware")
+        check(p.PureFANetwork, "list_network_interfaces")
 
     # wait till all threads finish
     q.join()
+    duration = datetime.now() - startTime
+    print("Total time: {}".format(duration))
+    print("Total calls: {}".format(count))
+    print("Calls/sec {}".format(1.0*count/duration.second))
 
 
 if __name__ == "__main__":

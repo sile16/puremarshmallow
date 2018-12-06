@@ -45,7 +45,12 @@ class APIWorker(threading.Thread):
 
     def run(self):
         # Create FA object and start session
-        self.safe_print("Starting worker")
+        message = ("Starting worker: fa = purestorage.FlashArray("
+                   "{}, username={}, password={}, api_token={})").format(
+                      self.ip, self.args.username, self.args.password,
+                      self.args.api_token
+                  )
+        self.safe_print(message)
         self.array = purestorage.FlashArray(self.ip, **self.config)
 
         while True:

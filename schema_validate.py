@@ -19,6 +19,7 @@ class bcolors:
 class APIWorker(threading.Thread):
     def __init__(self, q, ip, config, printLock, args):
         threading.Thread.__init__(self)
+        # print lock so only 1 thread writes to console at a time.
         self.printLock = printLock
         self.ip = ip
         self.config = config
@@ -55,13 +56,22 @@ class APIWorker(threading.Thread):
 
         while True:
             item = self.q.get()
+
+            # this is the schema class from purestorage_schema.py
             theClass = item['theClass']
+
             # FA Object "function name" was passed by string, get actual func
             arrayFunc = getattr(self.array, item['arrayFunc'])
 
             # actually make the API call here
-            theData = arrayFunc(**item['kwargs'])
+            try:
+                theData = arrayFunc(**item['kwargs'])
+            except Exception as e:
+                self.safe_print("Error: {}\n{}".format(theClass, e))
+                self.q.task_done()
+                continue
 
+            # check to see if data is a list or not
             many = False
             if isinstance(theData, (list,)):
                     many = True
@@ -69,7 +79,7 @@ class APIWorker(threading.Thread):
             # marshall data here
             o = theClass().load(theData, many)
 
-            # message = ("===============================\n")
+            # Display the function call
             message = "Testing: {}().load(fa.{}(".format(
                        theClass.__name__, item['arrayFunc'])
             delim = ""
@@ -78,9 +88,11 @@ class APIWorker(threading.Thread):
                 delim = ", "
             message += "), many={}) : ".format(many)
 
+            # if there was an error in the schema lets show details.
             if o.errors:
                 message += bcolors.RED + "Error !!! " + bcolors.ENDC
                 if many:
+                    # suppress repeating errors, just show 1 example
                     lastError = ""
                     errorCount = 0
                     for key in o.errors.keys():
@@ -91,9 +103,10 @@ class APIWorker(threading.Thread):
                         errorCount += 1
                         if errorCount > 5:
                             break
-                        message += self.display_error(theData[key],
-                                                      o.data[key],
-                                                      currError)
+                        if key in theData and key in o.data:
+                            message += self.display_error(theData[key],
+                                                          o.data[key],
+                                                          currError)
                 else:
                     message += self.display_error(theData,
                                                   o.data,
@@ -102,10 +115,11 @@ class APIWorker(threading.Thread):
             else:
                 message += bcolors.GREEN + "Success!" + bcolors.ENDC
 
+            # display the first record
             if args.peek:
                 message += "\n----------Marshalled Result--------\n"
                 message += bcolors.BLUE
-                if many:
+                if many and len(o.data) > 0:
                     message += pprint.pformat(o.data[0])
                 else:
                     message += pprint.pformat(o.data)
@@ -132,6 +146,7 @@ def main(args):
 
     count = 0
 
+    # wrapper to make each call below as clean as possible
     def check(theClass, arrayFunc, **kwargs):
         nonlocal count
         count += 1

@@ -1,5 +1,6 @@
 from marshmallow import Schema, fields, pre_load
 
+
 # class PureFlashArrayVolume(Schema):
 #    deviceNumber = fields.Int(load_from="deviceNumber")
 #    name = fields.Str(load_from="tier_name")
@@ -16,6 +17,14 @@ class PureFA(Schema):
     version = fields.Str()
 
 
+class PureFABanner(Schema):
+    banner = fields.Str()
+
+
+class PureFAConnectionKey(Schema):
+    connectionKey = fields.Str(load_from="connection_key")
+
+
 class PureFAControllers(Schema):
     # get(controllers=True)
     status = fields.Str()
@@ -24,6 +33,38 @@ class PureFAControllers(Schema):
     mode = fields.Str()
     model = fields.Str()
     arrayType = fields.Str(load_from="type")
+
+
+class PureFAIdelTimeout(Schema):
+    idleTimeout = fields.Int(load_from="idle_timeout")
+
+
+class PureFANTP(Schema):
+    ntpserver = fields.List(fields.Str())
+
+
+class PureFAPhoneHome(Schema):
+    phonehome = fields.Bool()
+
+    @pre_load()
+    def enhance(self, data):
+        data['phonehome'] = True if data['phonehome'] == "enabled" else False
+
+
+class PureFAProxy(Schema):
+    proxy = fields.Str()
+
+
+class PureFARelayHost(Schema):
+    relayhost = fields.Str()
+
+
+class PureFASCSITimeout(Schema):
+    scsiTimeout = fields.Int(load_from="scsi_timeout")
+
+
+class PureFASenderdomain(Schema):
+    senderdomain = fields.Str()
 
 
 class PureFASpace(Schema):
@@ -42,38 +83,11 @@ class PureFASpace(Schema):
     total_reduction = fields.Float()
 
 
-class PureFANTP(Schema):
-    ntpserver = fields.List(fields.Str())
+class PureFASyslogserver(Schema):
+    syslogserver = fields.List(fields.Str())
 
-
-class PureFAProxy(Schema):
-    proxy = fields.Str()
-
-
-class PureFARelayHost(Schema):
-    relayhost = fields.Str()
-
-
-class PureFASCSITimeout(Schema):
-    scsiTimeout = fields.Int(load_from="scsi_timeout")
-
-
-class PureFAPhoneHome(Schema):
-    phonehome = fields.Bool()
-
-    @pre_load()
-    def enhance(self, data):
-        data['phonehome'] = True if data['phonehome'] == "enabled" else False
-
-
-class PureFARemoteAssist(Schema):
-    status = fields.Bool()
-    name = fields.Str()
-    port = fields.Str()
-
-    @pre_load()
-    def enhance(self, data):
-        data['status'] = True if data['status'] == "enabled" else False
+######################################################################
+# array/connection Endpoint
 
 
 class PureFAConnection(Schema):
@@ -87,6 +101,59 @@ class PureFAConnection(Schema):
         load_from="replication_address", allow_none=True))
     connectinonType = fields.List(fields.Str(), load_from="type")
     arrayName = fields.Str(load_from="array_name")
+
+
+class PureFAWindow(Schema):
+    start = fields.TimeDelta()
+    end = fields.TimeDelta()
+
+
+class PureFAConnectionThrottle(Schema):
+    defaultLimit = fields.Str(load_from="default_limit", allow_none=True)
+    window = fields.Nested(PureFAWindow, many=True, allow_none=True)
+    windowLimit = fields.Str(load_from="windowLimit", allow_none=True)
+    arrayName = fields.Str(load_from="array_name")
+
+
+######################################################################
+# array/console_lock Endpoint
+
+
+class PureFAConsoleLock(Schema):
+    consoleLock = fields.Bool(load_from="console_lock")
+
+    @pre_load()
+    def enhance(self, data):
+        if data['console_lock'] == "enabled":
+            data['console_lock'] = True
+        else:
+            data['console_lock'] = False
+
+######################################################################
+# array/phonehome Endpoint
+
+
+class PureFAPhoneHomeStatus(Schema):
+    status = fields.Str()
+    action = fields.Str()
+
+
+######################################################################
+# array/remoteassist Endpoint
+
+
+class PureFARemoteAssist(Schema):
+    status = fields.Bool()
+    name = fields.Str()
+    port = fields.Str()
+
+    @pre_load()
+    def enhance(self, data):
+        data['status'] = True if data['status'] == "enabled" else False
+
+
+######################################################################
+# volume Endpoint
 
 
 class PureFAVolume(Schema):
@@ -136,6 +203,10 @@ class PureFASnapSpace(Schema):
     size = fields.Int()
 
 
+######################################################################
+# host Endpoint
+
+
 class PureFAHost(Schema):
     iqn = fields.List(fields.Str(), allow_none=True)
     wwn = fields.List(fields.Str(), allow_none=True)
@@ -146,34 +217,146 @@ class PureFAHost(Schema):
 class PureFAHostAll(Schema):
     hostWwn = fields.Str(load_from="host_wwn", allow_none=True)
     hostIqn = fields.Str(load_from="host_iqn", allow_none=True)
-    name = fields.Str()
-    lun = fields.Int()
+    hostName = fields.Str()
+    hostLun = fields.Int()
     vol = fields.Str()
     hgroup = fields.Str(allow_none=True)
     targetPort = fields.List(fields.Str(), load_from="target_port")
 
 
-class PureFAHostConnection(Schema):
+class PureFAHostCHAP(Schema):
+    targetPassword = fields.Str(load_from="target_password", allow_none=True)
+    host_password = fields.Str(load_from="host_password", allow_none=True)
+    target_user = fields.Str(load_from="target_user", allow_none=True)
+    name = fields.Str()
+    host_user = fields.Str(load_from="hostUser", allow_none=True)
+
+
+class PureFAHostConnect(Schema):
     vol = fields.Str()
     name = fields.Str()
     lun = fields.Int()
-    hgroup = fields.Str()
+    hgroup = fields.Str(allow_none=True)
 
 
-class PureFAHostGroup(Schema):
+class PureFAHostPersonality(Schema):
+    name = fields.Str()
+    personality = fields.Str(allow_none=True)
+
+
+######################################################################
+# hgroup Endpoint
+
+
+class PureFAHGroup(Schema):
     hosts = fields.List(fields.Str())
     name = fields.Str()
 
 
-class PureFAHostGroupConnection(Schema):
+class PureFAHGroupConnect(Schema):
     vol = fields.Str()
     name = fields.Str()
     lun = fields.Int()
+
+
+######################################################################
+# pod Endpoint
+
+
+class PureFAPodArray(Schema):
+    name = fields.Str()
+    status = fields.Str()
+    arrayId = fields.Str(load_from="array_id")
+    mediatorStatus = fields.Str(load_from="mediator_status")
+
+
+class PureFAPod(Schema):
+    name = fields.Str()
+    source = fields.Str(allow_none=True)
+    arrays = fields.Nested(PureFAPodArray, many=True)
+    failoverPreference = fields.List(fields.Str(),
+                                     load_from="failover_preference",
+                                     allow_none=True)
+    timeRemaining = fields.TimeDelta(load_from="time_remaining",
+                                     allow_none=True)
+
+
+#####################################################################
+# pgroup Endpoint
+
+
+class PureFAPGroupTarget(Schema):
+    name = fields.Str()
+    allowed = fields.Bool()
+
+
+class PureFAPGroup(Schema):
+    name = fields.Str()
+    hgroups = fields.List(fields.Str(), allow_none=True)
+    hosts = fields.List(fields.Str(), allow_none=True)
+    volumes = fields.List(fields.Str(), allow_none=True)
+    source = fields.Str()
+    targets = fields.Nested(PureFAPGroupTarget, allow_none=True, many=True)
+    timeRemaining = fields.TimeDelta(load_from="time_remaining",
+                                     allow_none=True)
+
+
+class PureFAPGroupRetention(Schema):
+    name = fields.Str()
+    targetPerDay = fields.Int(load_from="target_per_day")
+    days = fields.Int()
+    perDay = fields.Int(load_from="per_day")
+    targetAllFor = fields.Int(load_from="target_all_for")
+    targetDays = fields.Int(load_from="target_days")
+    allFor = fields.Int(load_from="all_for")
+
+
+class PureFAPGroupSchedule(Schema):
+    name = fields.Str()
+    snapFrequency = fields.TimeDelta(load_from="snap_frequency")
+    replicateFrequency = fields.TimeDelta(load_from="replicate_frequency")
+    replicateEnabled = fields.Bool(load_from="replicate_enabled")
+    snapEnabled = fields.Bool(load_from="snap_enabled")
+    snapAt = fields.TimeDelta(load_from="snap_at", allow_none=True)
+    replicateAt = fields.TimeDelta(load_from="replicate_at", allow_none=True)
+    replicateBlackout = fields.Nested(PureFAWindow, allow_none=True,
+                                      load_from="replicate_blackout",
+                                      many=True)
+
+
+#####################################################################
+# port Endpoint
+
+class PureFAPort(Schema):
+    name = fields.Str()
+    iqn = fields.Str(allow_none=True)
+    wwn = fields.Str(allow_none=True)
+    portal = fields.Str(allow_none=True)
+    failover = fields.Str(allow_none=True)
+
+
+class PureFAPortInitiators(Schema):
+    target = fields.Str(allow_none=True)
+    targetPortal = fields.Str(allow_none=True, load_from="target_portal")
+    targetIqn = fields.Str(allow_none=True, load_from="target_iqn")
+    targetWwn = fields.Str(allow_none=True, load_from="target_wwn")
+    iqn = fields.Str(allow_none=True)
+    wwn = fields.Str(allow_none=True)
+    portal = fields.Str(allow_none=True)
+    failover = fields.Str(allow_none=True)
+
+
+#####################################################################
+# alert Endpoint
 
 
 class PureFAAlertEmails(Schema):
     enabled = fields.Bool()
     name = fields.Str()
+
+
+#####################################################################
+# message Endpoint
 
 
 class PureFAMessage(Schema):
@@ -187,7 +370,33 @@ class PureFAMessage(Schema):
     details = fields.Str()
     expected = fields.Str(allow_none=True)
     id = fields.Int()
-    component_name = fields.Str()
+    component_name = fields.Str(allow_none=True)
+
+
+class PureFAMessageAudit(Schema):
+    id = fields.Int()
+    opened = fields.DateTime()
+    user = fields.Str()
+    component_type = fields.Str()
+    event = fields.Str()
+    component_name = fields.Str(allow_none=True)
+    details = fields.Str()
+
+
+class PureFAMessageLogin(Schema):
+    id = fields.Int()
+    component_type = fields.Str()
+    user = fields.Str(allow_none=True)
+    event = fields.Str()
+    count = fields.Int(allow_none=True)
+    opened = fields.DateTime(allow_none=True)
+    closed = fields.DateTime(allow_none=True)
+    expected = fields.Str(allow_none=True)
+    location = fields.Str(allow_none=True)
+
+
+#####################################################################
+# smtp Endpoint
 
 
 class PureFASMTP(Schema):
@@ -195,6 +404,90 @@ class PureFASMTP(Schema):
     password = fields.Str(allow_none=True)
     relayhost = fields.Str(load_from="relay_host", allow_none=True)
     senderDomain = fields.Str(load_from="sender_domain", allow_none=True)
+
+
+#####################################################################
+# snmp Endpoint
+
+
+class PureFASNMP(Schema):
+    name = fields.Str()
+    version = fields.Str(allow_none=True)
+    notification = fields.Str(allow_none=True)
+    community = fields.Str(allow_none=True)
+    privacyProtocol = fields.Str(allow_none=True, load_from="privacy_protocol")
+    authProtocol = fields.Str(allow_none=True, load_from="auth_protocol")
+    host = fields.Str(allow_none=True)
+    user = fields.Str(allow_none=True)
+    privacyPassphrase = fields.Str(allow_none=True,
+                                   load_from="privacy_passphrase")
+    authPassphrase = fields.Str(allow_none=True, load_from="auth_passphrase")
+
+
+#####################################################################
+# cert Endpoint
+
+
+class PureFACert(Schema):
+    status = fields.Str(allow_none=True)
+    issuedTo = fields.Str(allow_none=True, load_from="issued_to")
+    validFrom = fields.DateTime(load_from="valid_from")
+    name = fields.Str(allow_none=True)
+    locality = fields.Str(allow_none=True)
+    country = fields.Str(allow_none=True)
+    issuedBy = fields.Str(allow_none=True, load_from="issued_by")
+    validTo = fields.DateTime(load_from="valid_to")
+    state = fields.Str(allow_none=True)
+    keySize = fields.Int(allow_none=True, load_from="key_size")
+    organizationalUnit = fields.Str(allow_none=True,
+                                    load_from="organizational_unit")
+    organization = fields.Str(allow_none=True)
+    email = fields.Str(allow_none=True)
+
+
+#####################################################################
+# dns Endpoint
+
+
+class PureFADNS(Schema):
+    nameservers = fields.List(fields.Str(), allow_none=True)
+    domain = fields.Str(allow_none=True)
+
+
+#####################################################################
+# network Endpoint
+
+
+class PureFANetwork(Schema):
+    subnet = fields.Str(allow_none=True)
+    name = fields.Str()
+    enabled = fields.Bool()
+    mtu = fields.Int()
+    services = fields.List(fields.Str())
+    netmask = fields.Str(allow_none=True)
+    slaves = fields.List(fields.Str())
+    address = fields.Str(allow_none=True)
+    hwaddr = fields.Str()
+    speed = fields.Int()
+    gateway = fields.Str(allow_none=True)
+
+
+####################################################################
+# subnet Endpoint
+
+
+class PureFASubnet(Schema):
+    name = fields.Str()
+    interfaces = fields.List(fields.Str(), allow_none=True)
+    prefix = fields.Str(allow_none=True)
+    enabled = fields.Bool()
+    vlan = fields.Int(allow_none=True)
+    mtu = fields.Int()
+    gateway = fields.Str(allow_none=True)
+
+
+#####################################################################
+# drive Endpoint
 
 
 class PureFADrive(Schema):
@@ -206,6 +499,10 @@ class PureFADrive(Schema):
     protocol = fields.Str(allow_none=True)
     driveType = fields.Str(load_from="type")
     lastFailure = fields.DateTime(load_from="las_failure")
+
+
+#####################################################################
+# hardware Endpoint
 
 
 class PureFAHardware(Schema):
@@ -226,15 +523,40 @@ class PureFAHardware(Schema):
         data['identify'] = True if data['identify'] == "on" else False
 
 
-class PureFANetwork(Schema):
-    subnet = fields.Str(allow_none=True)
+#####################################################################
+# admin Endpoint
+
+
+class PureFAAdmin(Schema):
     name = fields.Str()
+    typeName = fields.Str(load_from="type")
+    created = fields.DateTime()
+    expires = fields.DateTime(allow_none=True)
+    apiToken = fields.Str(load_from="api_token")
+    publickey = fields.Str(allow_none=True)
+
+
+#####################################################################
+# directoryservice Endpoint
+
+
+class PureFADirectoryService(Schema):
+    bindUser = fields.Str(allow_none=True, load_from="bind_user")
     enabled = fields.Bool()
-    mtu = fields.Int()
-    services = fields.List(fields.Str())
-    netmask = fields.Str(allow_none=True)
-    slaves = fields.List(fields.Str())
-    address = fields.Str(allow_none=True)
-    hwaddr = fields.Str()
-    speed = fields.Int()
-    gateway = fields.Str(allow_none=True)
+    uri = fields.List(fields.Str(), allow_none=True)
+    bindPassword = fields.Str(allow_none=True, load_from="bind_password")
+    baseDn = fields.Str(allow_none=True, load_from="base_dn")
+    checkPeer = fields.Bool(load_from="check_peer")
+
+
+class PureFADirectoryServiceCertificate(Schema):
+    certificate = fields.Str(allow_none=True)
+
+
+class PureFADirectoryServiceGroups(Schema):
+    readonlyGroup = fields.Str(allow_none=True, load_from="readonly_group")
+    groupBase = fields.Str(allow_none=True, load_from="group_base")
+    arrayAdminGroup = fields.Str(allow_none=True,
+                                 load_from="array_admin_group")
+    storageAdminGroup = fields.Str(allow_none=True,
+                                   load_from="storage_admin_group")

@@ -92,7 +92,7 @@ Testing: PureFADirectoryServiceCertificate().load(fa.get_directory_service(certi
 Testing: PureFADrive().load(fa.list_drives(), many=True) : Success!
 Testing: PureFAMessageAudit().load(fa.list_messages(audit=True), many=True) : Success!
 Testing: PureFAMessageLogin().load(fa.list_messages(login=True), many=True) : Success!
-Total time: 0:00:13.745119
+Total time: 0:00:09.076790
 Total calls: 53
-Calls/sec 4.076923076923077
+Calls/sec 5.888888888888889
 ```

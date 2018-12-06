@@ -1,6 +1,8 @@
 # puremarshmallow
 
-This project provides a complete schema for all Pure Storage FlashArray GET endpoint objects using the marshmallow library.
+This project provides a complete schema for all Pure Storage FlashArray GET endpoints objects using the marshmallow library.
+
+This schema can help parse the objects returned by the Pure Storage Python SDK.
 
 marshmallow is an ORM/ODM/framework-agnostic library for converting complex datatypes, such as objects, to and from native Python datatypes.
 

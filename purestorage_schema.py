@@ -12,7 +12,7 @@ from marshmallow import Schema, fields, pre_load
 class PureFA(Schema):
     created = fields.DateTime()
     name = fields.Str()
-    arrayId = fields.Str(load_from="id)
+    arrayId = fields.Str(load_from="id")
     revision = fields.Str()
     version = fields.Str()
 

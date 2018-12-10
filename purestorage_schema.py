@@ -12,7 +12,7 @@ from marshmallow import Schema, fields, pre_load
 class PureFA(Schema):
     created = fields.DateTime()
     name = fields.Str()
-    id = fields.Str()
+    arrayId = fields.Str(load_from="id)
     revision = fields.Str()
     version = fields.Str()
 
@@ -48,7 +48,7 @@ class PureFAPhoneHome(Schema):
 
     @pre_load()
     def enhance(self, data):
-        data['phonehome'] = True if data['phonehome'] == "enabled" else False
+        data['phonehome'] = bool(data['phonehome'] == "enabled")
 
 
 class PureFAProxy(Schema):
@@ -76,11 +76,11 @@ class PureFASpace(Schema):
     system = fields.Int()
     snapshots = fields.Int()
     volumes = fields.Int()
-    data_reduction = fields.Float()
+    dataReduction = fields.Float(load_from="data_reduction")
     total = fields.Int()
-    shared_space = fields.Int()
-    thin_provisioning = fields.Float()
-    total_reduction = fields.Float()
+    sharedSpace = fields.Int(load_from="shared_space")
+    thinProvisioning = fields.Float(load_from="thin_provisioning")
+    totalReduction = fields.Float(load_from="total_reduction")
 
 
 class PureFASyslogserver(Schema):
@@ -124,10 +124,7 @@ class PureFAConsoleLock(Schema):
 
     @pre_load()
     def enhance(self, data):
-        if data['console_lock'] == "enabled":
-            data['console_lock'] = True
-        else:
-            data['console_lock'] = False
+        data['console_lock'] = bool(data['console_lock'] == "enabled")
 
 ######################################################################
 # array/phonehome Endpoint
@@ -149,7 +146,7 @@ class PureFARemoteAssist(Schema):
 
     @pre_load()
     def enhance(self, data):
-        data['status'] = True if data['status'] == "enabled" else False
+        data['status'] = bool(data['status'] == "enabled")
 
 
 ######################################################################
@@ -520,7 +517,7 @@ class PureFAHardware(Schema):
 
     @pre_load()
     def enhance(self, data):
-        data['identify'] = True if data['identify'] == "on" else False
+        data['identify'] = bool(data['identify'] == "on")
 
 
 #####################################################################
